@@ -150,7 +150,7 @@ main() {
     fetch_inputs "$@"
     install_k3d "$k3d_version"
     spinup_cluster "$cluster_name" "$kubeconfig_path" "$agent_count" "$loadbalancer_port"
-    # install_anchore "$kubeconfig_path" "$dockerhub_username" "$dockerhub_email"
+    install_anchore "$kubeconfig_path" "$dockerhub_username" "$dockerhub_email"
 }
 
 main "$@"
