@@ -134,6 +134,8 @@ install_anchore() {
         printf "No values.yaml file found. Spinning up default anchore deployment\n"
         helm install enterprise anchore/anchore-engine -n anchore
     fi
+    # TODO: Give option to install kai
+    # helm install kai anchore/kai
 }
 
 
@@ -142,7 +144,7 @@ main() {
     dockerhub_email=''
 
     k3d_version="v3.4.0"
-    agent_count=1
+    agent_count=5
     loadbalancer_port=8080
     cluster_name="anchore"
     kubeconfig_path="$HOME/.kube/$cluster_name.conf"
