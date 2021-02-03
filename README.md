@@ -1,3 +1,34 @@
+# k3d Anchore Deployment
+
+#### Script Usage
+
+```sh
+bash spinup.sh -u <docker-username> -e <docker-email>
+```
+
+This will delete any old clusters named `anchore` and then spin up a new Anchore Enterprise deployment. It _currently_ uses the MacOS Keychain to grab the password for the dockerhub pullcreds. If you are using another system then you will need to change the secret creation line.
+
+The cluster will expose the loadbalancer to port 8080 on the host machine and will set up ingresses so you will want to put the following in `etc/hosts`
+```
+# Local Dev Cluster
+127.0.0.1   anchore-api.k3d.localhost
+127.0.0.1   anchore-ui.k3d.localhost
+# End of section
+```
+
+Then to access the UI navigate to [anchore-ui.k3d.localhost:8080](anchore-ui.k3d.localhost:8080)
+
+To access the API use the following credentials (or the ones you have configured)
+
+```yaml
+default:
+  ANCHORE_CLI_USER: 'admin'
+  ANCHORE_CLI_PASS: 'foobar'
+  ANCHORE_CLI_URL: http://anchore-api.k3d.localhost:8080/v1/
+```
+
+
+# Dev Notes
 
 Need to use something like
 ```sh
