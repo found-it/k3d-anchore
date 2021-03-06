@@ -1,3 +1,7 @@
 license.yaml
 engine.values.yaml
 manifests/
+old
+__pycache__
+
+*.egg-info/
