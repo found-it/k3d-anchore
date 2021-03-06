@@ -2,10 +2,12 @@ import sys
 import click
 import logging
 
-from . import (engine, enterprise)
+from . import engine, enterprise
 
 
 @click.group()
+@click.option("--debug", is_flag=True, help="Set debug mode")
+@click.option("--dry-run", is_flag=True, help="Just spit out the commands")
 @click.option("--hardened", is_flag=True, help="Use Iron Bank containers")
 @click.option(
     "--fresh", is_flag=True, help="Overwrite any existing cluster of the same name"
@@ -19,7 +21,17 @@ from . import (engine, enterprise)
 )
 @click.option("--values", required=True, help="Path to values.yaml")
 @click.pass_context
-def cli(ctx, hardened, fresh, cluster_name, agent_count, loadbalancer_port, values):
+def cli(
+    ctx,
+    dry_run,
+    debug,
+    hardened,
+    fresh,
+    cluster_name,
+    agent_count,
+    loadbalancer_port,
+    values,
+):
     """
     Main entrypoint for click
 
@@ -27,6 +39,10 @@ def cli(ctx, hardened, fresh, cluster_name, agent_count, loadbalancer_port, valu
     DEFAULT_FORMAT = "%(levelname)-4s | %(message)s"
     logging.basicConfig(level=logging.INFO, stream=sys.stdout, format=DEFAULT_FORMAT)
 
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
+
+    ctx.obj["dry_run"] = dry_run
     ctx.obj["hardened"] = hardened
     ctx.obj["values"] = values
     ctx.obj["fresh"] = fresh

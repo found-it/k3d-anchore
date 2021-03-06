@@ -4,6 +4,7 @@ import sys
 
 from spinup.cli import shell
 
+
 @click.command()
 @click.option("--username", required=False, help="Username for pullcred secret")
 @click.option("--email", required=False, help="Email for pullcred secret")
@@ -38,4 +39,3 @@ def engine(ctx, username, email):
     shell.helm_upgrade(
         config=config, values="values.yaml", hardened=ctx.obj["hardened"]
     )
-

@@ -3,6 +3,7 @@ import logging
 
 from spinup.cli import shell
 
+
 @click.command()
 @click.option("--license", required=True, help="Path to license file")
 @click.option("--username", required=True, help="Username for pullcred secret")

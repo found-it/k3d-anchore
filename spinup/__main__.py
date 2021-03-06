@@ -1,3 +1,4 @@
 from spinup.cli import cli
 
-cli(obj={})
+if __name__ == "__main__":
+    cli(obj={})
