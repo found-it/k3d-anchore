@@ -1,22 +1,16 @@
 #!/usr/bin/env python3
 
-import pathlib
-import os
-import sys
-import argparse
-import subprocess
-import shutil
-
 import logging
+import os
+import shutil
+import subprocess
+import sys
+
+import click
 
 DEFAULT_FORMAT = "%(levelname)-4s | %(message)s"
-# DEFAULT_FORMAT = "%(name)-4s | %(levelname)-4s | %(message)s"
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout, format=DEFAULT_FORMAT)
-
-CLUSTER_GET = "k3d cluster get".split(" ")
-CLUSTER_CREATE = "k3d cluster create".split(" ")
-CLUSTER_DELETE = "k3d cluster delete".split(" ")
 
 
 def stream_output(cmd, redact=None):
@@ -86,6 +80,7 @@ def get_kubeconfig(cluster_name):
 
 
 def get_password(username):
+    # TODO: Give option to prompt in cli
     cmd = ["security", "find-internet-password", "-a", username, "-gw"]
     try:
         logging.info(" ".join(cmd))
@@ -106,173 +101,39 @@ def get_password(username):
     return p.stdout[:-1]
 
 
-def main():
+def create_pullcreds(config, username, email, hardened=False):
+    # TODO: Fix ImagePullBackoff for hardened
+    if hardened:
+        registry = "registry1.dso.mil"
+    else:
+        registry = "docker.io"
 
-    preflight()
+    password = get_password(username)
+    stream_output(
+        [
+            "kubectl",
+            "--kubeconfig",
+            config,
+            "create",
+            "secret",
+            "docker-registry",
+            "anchore-enterprise-pullcreds",
+            "--docker-server",
+            registry,
+            "--docker-username",
+            username,
+            "--docker-password",
+            password,
+            "--docker-email",
+            email,
+            "--namespace",
+            "anchore",
+        ],
+        redact=password,
+    )
 
-    # Arguments
-    parser = argparse.ArgumentParser(description="Run pipelines arguments")
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Testing flag to dry run the script",
-    )
-    parser.add_argument(
-        "--hardened",
-        action="store_true",
-        help="Use registry1 images",
-    )
-    parser.add_argument(
-        "--engine",
-        action="store_true",
-        help="Install engine deployment",
-    )
-    parser.add_argument(
-        "--enterprise",
-        action="store_true",
-        help="Install enterprise deployment",
-    )
-    parser.add_argument(
-        "--fresh",
-        action="store_true",
-        help="Install a fresh cluster even if there is already one under the same name",
-    )
-    parser.add_argument(
-        "--cluster-name",
-        default="anchore",
-        type=str,
-        help="Name for cluster.",
-    )
-    parser.add_argument(
-        "--agent-count",
-        default="5",
-        type=str,
-        help="Number of agents in cluster.",
-    )
-    parser.add_argument(
-        "--lb-port",
-        default=8080,
-        type=int,
-        help="Loadbalancer port.",
-    )
-    parser.add_argument(
-        "--values",
-        default="values.yaml",
-        type=str,
-        help="Path to values file.",
-    )
-    parser.add_argument(
-        "--email",
-        type=str,
-        help="Email for image pullcreds.",
-    )
-    parser.add_argument(
-        "--username",
-        type=str,
-        help="Username for image pullcreds.",
-    )
-    parser.add_argument(
-        "--kubeconfig",
-        type=str,
-        help="Kube Config path.",
-    )
-    parser.add_argument(
-        "--license",
-        type=str,
-        help="Kube Config path.",
-    )
-    args = parser.parse_args()
-    # End arguments
 
-    if args.engine and args.enterprise:
-        logging.error("Can't have both --engine and --enterprise")
-        sys.exit(1)
-
-    cmd = CLUSTER_GET + [args.cluster_name]
-    exists = stream_output(cmd)
-    if exists.returncode == 0:
-        if args.fresh:
-            logging.info(f"{args.cluster_name} cluster exists. Deleting it..")
-            cmd = CLUSTER_DELETE + [args.cluster_name]
-            stream_output(cmd)
-        else:
-            logging.warning(f"{args.cluster_name} already exists.")
-            logging.warning("Use --fresh if you want to replace it.")
-            sys.exit(0)
-
-    logging.info(f"Creating cluster {args.cluster_name}")
-    cmd = CLUSTER_CREATE + [
-        args.cluster_name,
-        "--agents",
-        args.agent_count,
-        "--update-default-kubeconfig=false",
-        "--switch-context=false",
-        "--port",
-        f"{args.lb_port}:80@loadbalancer",
-        "--wait=true",
-    ]
-    stream_output(cmd)
-
-    config = get_kubeconfig(cluster_name=args.cluster_name).strip()
-    stream_output(["kubectl", "--kubeconfig", config, "create", "ns", "anchore"])
-
-    if args.enterprise:
-        if not args.email:
-            logging.error("Need email --email")
-            sys.exit(1)
-
-        if not args.username:
-            logging.error("Need username --username")
-            sys.exit(1)
-
-        if not args.license:
-            logging.error("Need path to license --license")
-            sys.exit(1)
-
-        if args.hardened:
-            registry = "registry1.dso.mil"
-        else:
-            registry = "docker.io"
-
-        password = get_password(args.username)
-        stream_output(
-            [
-                "kubectl",
-                "--kubeconfig",
-                config,
-                "create",
-                "secret",
-                "docker-registry",
-                "anchore-enterprise-pullcreds",
-                "--docker-server",
-                registry,
-                "--docker-username",
-                args.username,
-                "--docker-password",
-                password,
-                "--docker-email",
-                args.email,
-                "--namespace",
-                "anchore",
-            ],
-            redact=password,
-        )
-
-        stream_output(
-            [
-                "kubectl",
-                "--kubeconfig",
-                config,
-                "create",
-                "secret",
-                "generic",
-                "anchore-enterprise-license",
-                f"--from-file=license.yaml={args.license}",
-                "--namespace",
-                "anchore",
-            ]
-        )
-
+def helm_upgrade(config, values, hardened=False, enterprise=False):
     cmd = [
         "helm",
         "--kubeconfig",
@@ -284,13 +145,13 @@ def main():
         "anchore",
         "anchore/anchore-engine",
         "--values",
-        args.values,
+        values,
     ]
 
-    if args.enterprise:
+    if enterprise:
         cmd += ["--set", "anchoreEnterpriseGlobal.enabled=true"]
 
-    if args.hardened:
+    if hardened:
         cmd += [
             "--set",
             "anchoreEnterpriseGlobal.image=registry1.dso.mil/anchore/enterprise/enterprise:3.0.0",
@@ -301,8 +162,148 @@ def main():
         ]
     stream_output(cmd)
 
+
+def create_cluster(fresh, cluster_name, agent_count, loadbalancer_port):
+    preflight()
+
+    cmd = ["k3d", "cluster", "get", cluster_name]
+    exists = stream_output(cmd)
+    if exists.returncode == 0:
+        if fresh:
+            logging.info(f"{cluster_name} cluster exists. Deleting it..")
+            cmd = ["k3d", "cluster", "delete", cluster_name]
+            stream_output(cmd)
+        else:
+            logging.warning(f"{cluster_name} already exists.")
+            logging.warning("Use --fresh if you want to replace it.")
+            sys.exit(0)
+
+    logging.info(f"Creating cluster {cluster_name}")
+    cmd = [
+        "k3d",
+        "cluster",
+        "create",
+        cluster_name,
+        "--agents",
+        agent_count,
+        "--update-default-kubeconfig=false",
+        "--switch-context=false",
+        "--port",
+        f"{loadbalancer_port}:80@loadbalancer",
+        "--wait=true",
+    ]
+    stream_output(cmd)
+
+    config = get_kubeconfig(cluster_name=cluster_name).strip()
+    stream_output(["kubectl", "--kubeconfig", config, "create", "ns", "anchore"])
+
     logging.info("export KUBECONFIG=(k3d kubeconfig write anchore)")
+    return config
+
+
+@click.group()
+@click.option("--hardened", is_flag=True, help="Use Iron Bank containers")
+@click.option(
+    "--fresh", is_flag=True, help="Overwrite any existing cluster of the same name"
+)
+@click.option("--cluster-name", default="anchore", help="Cluster name")
+@click.option("--agent-count", default="3", help="Number of worker nodes")
+@click.option(
+    "--loadbalancer-port",
+    default="8080",
+    help="Local port for accessing the loadbalancer",
+)
+@click.option("--values", required=True, help="Path to values.yaml")
+@click.pass_context
+def cli(ctx, hardened, fresh, cluster_name, agent_count, loadbalancer_port, values):
+
+    ctx.obj["hardened"] = hardened
+    ctx.obj["values"] = values
+    ctx.obj["fresh"] = fresh
+    ctx.obj["cluster_name"] = cluster_name
+    ctx.obj["agent_count"] = agent_count
+    ctx.obj["loadbalancer_port"] = loadbalancer_port
+
+    logging.debug(ctx.obj)
+
+
+@click.command()
+@click.option("--username", required=False, help="Username for pullcred secret")
+@click.option("--email", required=False, help="Email for pullcred secret")
+@click.pass_context
+def engine(ctx, username, email):
+    if ctx.obj["hardened"]:
+        if not username or not email:
+            logging.error("Username and password are required for a hardened image")
+            # TODO: Print help menu for subcommand
+            sys.exit(1)
+
+    logging.info("Spinning up engine")
+
+    config = create_cluster(
+        fresh=ctx.obj["fresh"],
+        cluster_name=ctx.obj["cluster_name"],
+        agent_count=ctx.obj["agent_count"],
+        loadbalancer_port=ctx.obj["loadbalancer_port"],
+    )
+    if ctx.obj["hardened"]:
+        create_pullcreds(
+            config=config,
+            username=username,
+            email=email,
+            hardened=ctx.obj["hardened"],
+        )
+    helm_upgrade(
+        config=config, values="values.yaml", hardened=ctx.obj["hardened"]
+    )
+
+
+@click.command()
+@click.option("--license", required=True, help="Path to license file")
+@click.option("--username", required=True, help="Username for pullcred secret")
+@click.option("--email", required=True, help="Email for pullcred secret")
+@click.pass_context
+def enterprise(ctx, license, username, email):
+    logging.info("Spinning up enterprise")
+
+    config = create_cluster(
+        fresh=ctx.obj["fresh"],
+        cluster_name=ctx.obj["cluster_name"],
+        agent_count=ctx.obj["agent_count"],
+        loadbalancer_port=ctx.obj["loadbalancer_port"],
+    )
+
+    create_pullcreds(
+        config=config,
+        username=username,
+        email=email,
+        hardened=ctx.obj["hardened"],
+    )
+    stream_output(
+        [
+            "kubectl",
+            "--kubeconfig",
+            config,
+            "create",
+            "secret",
+            "generic",
+            "anchore-enterprise-license",
+            f"--from-file=license.yaml={license}",
+            "--namespace",
+            "anchore",
+        ]
+    )
+    helm_upgrade(
+        config=config,
+        values="values.yaml",
+        hardened=ctx.obj["hardened"],
+        enterprise=True,
+    )
+
+
+cli.add_command(enterprise)
+cli.add_command(engine)
 
 
 if __name__ == "__main__":
-    main()
+    cli(obj={})
