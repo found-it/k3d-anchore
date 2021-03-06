@@ -216,7 +216,10 @@ def create_cluster(fresh, cluster_name, agent_count, loadbalancer_port):
 @click.option("--values", required=True, help="Path to values.yaml")
 @click.pass_context
 def cli(ctx, hardened, fresh, cluster_name, agent_count, loadbalancer_port, values):
+    """
+    Main entrypoint for click
 
+    """
     ctx.obj["hardened"] = hardened
     ctx.obj["values"] = values
     ctx.obj["fresh"] = fresh
@@ -232,6 +235,11 @@ def cli(ctx, hardened, fresh, cluster_name, agent_count, loadbalancer_port, valu
 @click.option("--email", required=False, help="Email for pullcred secret")
 @click.pass_context
 def engine(ctx, username, email):
+    """
+    Spin up a deployment of engine. Username and email are required if the hardened
+    flag is used
+
+    """
     if ctx.obj["hardened"]:
         if not username or not email:
             logging.error("Username and password are required for a hardened image")
@@ -264,6 +272,11 @@ def engine(ctx, username, email):
 @click.option("--email", required=True, help="Email for pullcred secret")
 @click.pass_context
 def enterprise(ctx, license, username, email):
+    """
+    Spin up a deployment of engine. Username and email are required along with the path
+    to a valid license
+
+    """
     logging.info("Spinning up enterprise")
 
     config = create_cluster(
