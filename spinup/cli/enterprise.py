@@ -1,7 +1,7 @@
 import click
 import logging
 
-import spinup.cli.shell
+from spinup.cli import shell
 
 @click.command()
 @click.option("--license", required=True, help="Path to license file")

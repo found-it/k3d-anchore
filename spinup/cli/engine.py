@@ -2,7 +2,7 @@ import click
 import logging
 import sys
 
-import spinup.cli.shell
+from spinup.cli import shell
 
 @click.command()
 @click.option("--username", required=False, help="Username for pullcred secret")

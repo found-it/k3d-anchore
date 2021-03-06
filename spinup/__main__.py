@@ -1,3 +1,3 @@
 from spinup.cli import cli
 
-cli()
+cli(obj={})
