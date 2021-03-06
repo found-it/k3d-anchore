@@ -113,16 +113,18 @@ install_anchore() {
 
     kubectl create ns anchore
 
-    kubectl --kubeconfig="$kubeconfig_path" create secret                                 \
-        docker-registry anchore-dockerhub-creds                                           \
-        --docker-server=docker.io                                                         \
-        --docker-username="$dockerhub_username"                                           \
+        # --docker-server=docker.io \
+        # --docker-server=registry1.dso.mil \
+    kubectl --kubeconfig="$kubeconfig_path" create secret \
+        docker-registry anchore-enterprise-pullcreds \
+        --docker-server=docker.io \
+        --docker-username="$dockerhub_username" \
         --docker-password=$(security find-internet-password -a "$dockerhub_username" -gw) \
-        --docker-email="$dockerhub_email"                                                 \
+        --docker-email="$dockerhub_email" \
         -n anchore
 
     kubectl --kubeconfig=$kubeconfig_path create secret \
-        generic anchore-license \
+        generic anchore-enterprise-license \
         --from-file=license.yaml=license.yaml \
         -n anchore
 
