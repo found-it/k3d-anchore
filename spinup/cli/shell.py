@@ -191,4 +191,3 @@ def create_cluster(fresh, cluster_name, agent_count, loadbalancer_port):
 
     logging.info("export KUBECONFIG=(k3d kubeconfig write anchore)")
     return config
-
