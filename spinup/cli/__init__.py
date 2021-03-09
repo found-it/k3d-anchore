@@ -7,7 +7,7 @@ from . import engine, enterprise
 
 @click.group()
 @click.option("--debug", is_flag=True, help="Set debug mode")
-@click.option("--dry-run", is_flag=True, help="Just spit out the commands")
+# @click.option("--dry-run", is_flag=True, help="Just spit out the commands")
 @click.option("--hardened", is_flag=True, help="Use Iron Bank containers")
 @click.option(
     "--fresh", is_flag=True, help="Overwrite any existing cluster of the same name"
@@ -23,7 +23,6 @@ from . import engine, enterprise
 @click.pass_context
 def cli(
     ctx,
-    dry_run,
     debug,
     hardened,
     fresh,
@@ -42,7 +41,7 @@ def cli(
     if debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    ctx.obj["dry_run"] = dry_run
+    # ctx.obj["dry_run"] = dry_run
     ctx.obj["hardened"] = hardened
     ctx.obj["values"] = values
     ctx.obj["fresh"] = fresh
