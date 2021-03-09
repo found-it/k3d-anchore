@@ -1,12 +1,23 @@
 # k3d Anchore Deployment
 
-#### Script Usage
+#### Installation
 
+This repo comes with a Makefile so you can just run
 ```sh
-bash spinup.sh -u <docker-username> -e <docker-email>
+make install
 ```
 
-This will delete any old clusters named `anchore` and then spin up a new Anchore Enterprise deployment. It _currently_ uses the MacOS Keychain to grab the password for the dockerhub pullcreds. If you are using another system then you will need to change the secret creation line.
+This will install a local pip package in editable mode, it doesn't install on the system (future work)
+
+#### Script Usage
+
+From the root of this repo you can use the following command to spin up a basic deployment of Anchore Engine
+
+```sh
+python3 spinup --values=values.yaml engine
+```
+
+This will delete any old clusters named `anchore` and then spin up a new Anchore Enterprise deployment. It _currently_ uses the MacOS Keychain to grab the password for the dockerhub pullcreds. If you are using another system then you will need to change the secret creation line. Future work will remove this dependency.
 
 The cluster will expose the loadbalancer to port 8080 on the host machine and will set up ingresses so you will want to put the following in `etc/hosts`
 ```

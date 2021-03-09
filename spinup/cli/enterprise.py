@@ -11,7 +11,7 @@ from spinup.cli import shell
 @click.pass_context
 def enterprise(ctx, license, username, email):
     """
-    Spin up a deployment of engine. Username and email are required along with the path
+    Spin up a deployment of enterprise. Username and email are required along with the path
     to a valid license
 
     """

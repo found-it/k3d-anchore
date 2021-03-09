@@ -32,7 +32,7 @@ def cli(
     values,
 ):
     """
-    Main entrypoint for click
+    Spin up a local Anchore deployment on top of k3d
 
     """
     DEFAULT_FORMAT = "%(levelname)-4s | %(message)s"
