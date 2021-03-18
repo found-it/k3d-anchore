@@ -94,7 +94,6 @@ def get_password(username):
 
 
 def create_pullcreds(config, username, email, hardened=False):
-    # TODO: Fix ImagePullBackoff for hardened
     if hardened:
         registry = "registry1.dso.mil"
     else:
@@ -146,11 +145,11 @@ def helm_upgrade(config, values, hardened=False, enterprise=False):
     if hardened:
         cmd += [
             "--set",
-            "anchoreEnterpriseGlobal.image=registry1.dso.mil/anchore/enterprise/enterprise:3.0.0",
+            "anchoreEnterpriseGlobal.image=registry1.dso.mil/ironbank/anchore/enterprise/enterprise:3.0.0",
             "--set",
-            "anchoreEnterpriseUi.image=registry1.dso.mil/anchore/enterpriseui/enterpriseui:3.0.0",
+            "anchoreEnterpriseUi.image=registry1.dso.mil/ironbank/anchore/enterpriseui/enterpriseui:3.0.0",
             "--set",
-            "anchoreGlobal.image=registry1.dso.mil/anchore/engine/engine:0.9.0",
+            "anchoreGlobal.image=registry1.dso.mil/ironbank/anchore/engine/engine:0.9.0",
         ]
     stream_output(cmd)
 
